@@ -13,7 +13,7 @@ import Foundation
 public protocol iRulloFinanceProtocol {
     func fetchChartData(tickerSymbol: String, range: ChartRange) async throws -> ChartData?
     func fetchChartRawData(symbol: String, range: ChartRange) async throws -> (Data, URLResponse)
-    func searchTickers(query: String, isEquityTypeOnly: Bool) async throws -> [Ticker]
+    func searchTickers(query: String, isEquityTypeOnly: Bool?) async throws -> [Ticker]
     func searchTickersRawData(query: String, isEquityTypeOnly: Bool) async throws -> (Data, URLResponse)
     func fetchQuotes(symbols: String) async throws -> [Quote]
     func fetchQuotesRawData(symbols: String) async throws -> (Data, URLResponse)
@@ -47,14 +47,14 @@ public struct iRulloFinance: iRulloFinanceProtocol {
         return try await session.data(from: url)
     }
     
-    public func searchTickers(query: String, isEquityTypeOnly: Bool) async throws -> [Ticker] {
+    public func searchTickers(query: String, isEquityTypeOnly: Bool? = true) async throws -> [Ticker] {
         guard let url = urlForSearchTickers(query: query) else { throw APIServiceError.invalidURL }
         let (resp, statusCode): (SearchTickersResponse, Int) = try await fetch(url: url)
         if let error = resp.error {
             throw APIServiceError.httpStatusCodeFailed(statusCode: statusCode, error: error)
         }
         let data = resp.data ?? []
-        if isEquityTypeOnly {
+        if let isEquityTypeOnly = isEquityTypeOnly {
             return data.filter { ($0.quoteType ?? "").localizedCaseInsensitiveCompare("equity") == .orderedSame }
         } else {
             return data
